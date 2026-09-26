@@ -487,6 +487,7 @@ async def on_message(message: discord.Message):
                 pass
 
     # 2. Tetik Kelime Kontrolleri (Kelimelerin içine sahte eşleşme yapmaz)
+    # Görünür tepkiler artık şansa bağlı tetiklenir (config.TRIGGER_CHANCE_*), sayaçlar her durumda işlenir
     if not already_responded:
         for trigger, responses in messages.TETIK_CEVAPLAR.items():
             if check_word_match(trigger, content_lower):
@@ -502,14 +503,34 @@ async def on_message(message: discord.Message):
                     # Başka bir üye Mustafa'yı kışkırtıyorsa skora yaz
                     record_provocation(message.author.id)
 
-                target_mention = get_target_mention()
-                reply_text = random.choice(responses).format(target=target_mention)
-                try:
-                    await message.channel.send(reply_text)
-                    already_responded = True
-                except Exception:
-                    pass
+                chance = config.TRIGGER_CHANCE_TARGET if is_mustafa else config.TRIGGER_CHANCE_OTHERS
+                if random.random() < chance:
+                    target_mention = get_target_mention()
+                    reply_text = random.choice(responses).format(target=target_mention)
+                    try:
+                        await message.channel.send(reply_text)
+                        already_responded = True
+                    except Exception:
+                        pass
                 break
+
+    # 3. Target herhangi bir mesaj yazdıysa rastgele troll tepkisi (şansa bağlı)
+    if is_mustafa and not already_responded and random.random() < config.TARGET_RANDOM_CHANCE:
+        target_mention = get_target_mention()
+        choice = random.random()
+        try:
+            if choice < 0.4:
+                fact = random.choice(messages.MUSTAFA_FUN_FACTS).format(target=target_mention)
+                await message.channel.send(fact)
+            elif choice < 0.7:
+                soz = random.choice(messages.MUSTAFA_BILGELIK_SOZLERI)
+                await message.channel.send(f'"{soz}"\n\n— **{target_mention}** (Az önce söyledi, biz not aldık)')
+            else:
+                msg = random.choice(messages.GENEL_TROLL_MESAJLARI).format(target=target_mention)
+                await message.channel.send(msg)
+            already_responded = True
+        except Exception:
+            pass
 
     await bot.process_commands(message)
 
