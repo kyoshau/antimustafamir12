@@ -1,0 +1,11 @@
+# Shell scripts must always use LF (Raspberry Pi/Linux)
+*.sh text eol=lf
+
+# Python files use LF
+*.py text eol=lf
+
+# Other text files auto
+*.md text
+*.txt text
+*.json text
+.env.example text
