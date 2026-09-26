@@ -265,3 +265,111 @@ TELEMETRI_MESAJLARI = [
     "**Mustafa Borsa Endeksi:** İnkâr hisseleri %14 yükseldi, sabır ve tahammül hisseleri taban yaptı. Yatırım tavsiyesi değildir.",
     "**Sistem Telemetrisi:** {target} için ayrılan günlük sabır kotası tükenmek üzere. Kalan tahammül kotası: %3.4."
 ]
+
+# ----------------- V2 ÖZELLİK HAVUZLARI -----------------
+
+# /anket Soruları (Seçenekler sabit: ANKET_SECENEKLER)
+ANKET_SORULARI = [
+    "Mustafa ermeni mi?",
+    "Mustafa fenerli mi?",
+    "Mustafa VLC kurulumunu bitirebilecek mi?",
+    "Mustafa uykusunda 'yok' mu sayıklıyor?",
+    "Profildeki turuncu kedi aslında sunucunun gerçek yöneticisi mi?",
+    "Mustafa bu sezon CS2'de maç kazanabilecek mi?",
+]
+ANKET_SECENEKLER = ["Evet", "Tabii ki", "Sorması ayıp, evet"]
+
+# Parodi Artvin Hava Durumu (/hava)
+HAVA_DURUMLARI = [
+    ("Turuncu Koni Yağmurlu", "Karayolları Genel Müdürlüğü koni yağışı uyarısı yaptı; {target}'in evinde sevinç çığlıkları duyulduğu raporlandı."),
+    ("Darlamalı ve Bulutlu", "Bulutlar {target} gibi darlıyor. Yağış ihtimali: 'yok'."),
+    ("Mantra Rüzgarlı", "Gürcistan sınırından saatte 90 km hızla 'amına koyarım tamam' sesleri taşıyan rüzgar bekleniyor."),
+    ("Sarı-Lacivert Sis", "Görüş mesafesi sarı-lacivert sis nedeniyle 2 metreye düştü; {target} sisle ilgisi olmadığını inkâr etti."),
+    ("Gözyaşı Fırtınası", "Fenerbahçe maçı sonrası gözyaşı fırtınası onaylandı; {target} 'soğan doğradım' savunması yaptı."),
+]
+
+# Presence (online/offline/dnd) roastları
+PRESENCE_GECE_ONLINE = [
+    "{target} saat {saat}'te online oldu. Fener maçının tekrarı mı, yoksa gece koni sayımı mı?",
+    "{target} {saat} sularında uyumuyor... Erivan Radyosu gece yayınına bağlandığı tespit edildi.",
+]
+PRESENCE_GUNDUZ_ONLINE = [
+    "{target} online oldu. Sunucu tehdit seviyesi bir kademe yükseltildi, koniler hizaya çekilsin.",
+    "{target} çevrimiçi: VLC güncelleme töreni başlamak üzere, lütfen kanalı boşaltınız.",
+]
+PRESENCE_OFFLINE = [
+    "{target} offline oldu ve kaçtı. Arkasından bir adet sarı-lacivert mendil sallanıyor.",
+    "{target} çevrimdışı: 'elektrikler gitti yoksa haklıydım' protokolü yine devrede.",
+]
+PRESENCE_DND = [
+    "{target} DND moduna geçti. Muhtemelen ağlıyor veya VLC kuruyor. İkisi de saygıdeğer.",
+]
+
+# Nick değişimi anonsları
+NICK_DEGISIM = [
+    "KİMLİK DEĞİŞİKLİĞİ ALARMI! {target} nickini değiştirdi: '{eski}' → '{yeni}'. Artvin 1. Ağır Ceza Mahkemesi'nden kaçış yok.",
+    "Nüfus müdürlüğü duyurusu: {target} artık '{yeni}' (eski: '{eski}'). Koni kotası ve dava dosyaları aynen devredildi.",
+]
+
+# Mesaj düzenleme ifşası
+EDIT_IFSA = [
+    "DÜZENLEME İFŞASI! {target} mesajını değiştirdi ama arşivler yalan söylemez!\n**Orijinali:** \"{eski}\"\n**Sonradan cakası:** \"{yeni}\"",
+    "{target} mesajını editledi! Artvin İstihbaratı orijinalini saklıyordu:\n> {eski}\nYeni hali: {yeni}",
+]
+
+# Mesaj silme (kanıt karartma)
+DELETE_KANIT = [
+    "KANIT KARARTMA ALARMI! {target} mesajını sildi ama tanık koniler her şeyi gördü:\n> \"{icerik}\"",
+    "{target} mesajını sildi! 'yok' savunmasına hazırlandığı tespit edildi. Silinen kanıt: \"{icerik}\"",
+]
+
+# Kayıp ihbarı (uzun sessizlik)
+KAYIP_IHBARI = [
+    "KAYIP İHBARI: {target} tam {saat} saattir yazmıyor. AFAD ve Karayolları ortak arama ekibi kurdu; turuncu koni izleri takip ediliyor.",
+    "DUYURU: {target}'den {saat} saattir ses yok. Ya VLC kurulumu nihayet başarılı oldu ya da Gürcistan sınırına dayandı. Görenlerin Artvin 1. Sulh Ceza'ya bildirmesi rica olunur.",
+]
+
+# İnkâr zinciri (arka arkaya 'yok')
+ZINCIR_MESAJLARI = [
+    "İNKÂR ZİNCİRİ! {target} arka arkaya {adet} kez 'yok' dedi! İnkâr enerjisi kritik eşiği aştı, NASA roket yakıtı açıklaması yaptı.",
+    "REKOR: {target}'den üst üste {adet} 'yok'! Artvin İnkâr Müzesi kaydı sergilemek için resmen başvuru yaptı.",
+]
+
+# Caps lock eşik etkinliği
+CAPS_EVENT = [
+    "SİSMİK RAPOR: {target} bugün {adet}. kez CAPS LOCK açtı! Artvin Çoruh Barajı titreşim ölçerleri alarma geçti, acil koni dağıtımı başlatıldı.",
+]
+
+# Bingo tamamlandı anonsu
+BINGO_MESAJ = [
+    "BINGO! {target} bugünkü bingo kartındaki tüm kelimeleri kullandı! Ödülü: 1 adet ömür boyu VLC Premium lisansı ve 1 turuncu koni. Tebrikler!",
+]
+
+# Günlük bingo kartı kelimeleri (3x3)
+BINGO_KELIMELER = ["yok", "sg", "amına", "kes", "vlc", "fener", "ermeni", "kedi", "gelmem"]
+
+# Karne (/karne) dersleri ve yorumları
+KARNE_DERSLER = [
+    ("İnkâr Bilimi", "Öğrencinin 'yok' refleksi sınıf ortalamasının çok üzerinde; kendi inkâr teorisini geliştirdi."),
+    ("Türkçe Dili ve Küfür", "Kelime dağarcığı 5 kelimeyle sınırlı fakat kullanım sıklığı rekor seviyede."),
+    ("Öfke Yönetimi", "Caps lock bağımlılığı gözlemlendi; dersten 3. kez kaldı."),
+    ("VLC Kurulumu", "Öğrenci yıllardır 'kurulum devam ediyor' durumunda; dersin tamamlanması mümkün görünmüyor."),
+    ("Fenerbahçe İnkârı", "Sarı-lacivert gözyaşı analizlerine rağmen 'ben fenerli değilim' savunması yapıyor; kurul endişeli."),
+    ("Koni Fiziği", "Koni montajında ileri düzey bilgi; tezi halen soruşturma altında."),
+]
+KARNE_NOTLAR = ["FF", "FF", "DD", "DC", "CC", "FB"]
+
+# Haftalık rapor giriş sözleri
+HAFTALIK_SOZLER = [
+    "Bu hafta da {target} sunucu arşivlerini inkâr ve caps lock ile doldurdu.",
+    "Haftalık analiz: {target}'in inkâr grafiği yine yükselişte; ekonomistler buna 'yok enflasyonu' diyor.",
+    "Haftalık bülten: {target}'in küfür portföyü çeşitlendi, rage vadeli işlemleri tavan yaptı.",
+]
+
+# /olay manuel olay trollü havuzu
+OLAY_TROLL_MESAJLARI = [
+    "SON DAKİKA: {target} aynanın karşısında 'ben fenerli değilim' provası yaparken görüntülendi.",
+    "SON DAKİKA: {target}'in tarayıcı geçmişinde yine VLC simgesi belirdi; VideoLAN resmi açıklama yaptı.",
+    "SON DAKİKA: {target} sunucuda 'naber' yazıp cevabı beklemeden ayrıldı; diplomatik protokol ihlali kayıtlara geçti.",
+    "SON DAKİKA: Koni envanter sayımında 3 koni eksik çıktı; izler {target}'in odasına ulaşıyor.",
+]

@@ -53,7 +53,22 @@ DEFAULT_DATA = {
     "gunluk_kufur": 0,
     "max_rage": 0,
     "last_report_date": str(datetime.date.today()),
-    "kiskirtmalar": {}  # {user_id_str: count}
+    "kiskirtmalar": {},  # {user_id_str: count}
+    # v2 özellikleri
+    "yok_zincir": 0,
+    "last_target_ts": 0,
+    "last_absence_date": "",
+    "gunluk_caps": 0,
+    "caps_event_date": "",
+    "bingo_marks": [],
+    "bingo_date": str(datetime.date.today()),
+    "bingo_done_date": "",
+    "davalar": [],  # [{tarih, suc}]
+    "kelime_sayac": {},
+    "rage_gecmis": [],  # [{tarih, max}] son 7 gün
+    "haftalik_mesaj": 0,
+    "haftalik_kufur": 0,
+    "last_weekly": "",
 }
 
 def load_data():
@@ -92,6 +107,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.guilds = True
+intents.presences = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
@@ -139,6 +155,70 @@ def check_word_match(trigger: str, text: str) -> bool:
     """Kelimelerin başka kelimelerin içinde sahte eşleşme yapmasını engeller."""
     pattern = rf"(?:\b|\A){re.escape(trigger)}(?:\b|\Z)"
     return bool(re.search(pattern, text, re.IGNORECASE))
+
+async def get_target_channel():
+    """Hedef kanalı döndürür (önbellek veya fetch)."""
+    cid = get_channel_id()
+    if not cid:
+        return None
+    channel = bot.get_channel(cid)
+    if not channel:
+        try:
+            channel = await bot.fetch_channel(cid)
+        except Exception:
+            return None
+    return channel
+
+def record_dava(suc: str):
+    """Mahkeme davasını arşive kaydeder (son 20 dava)."""
+    davalar = bot_data.get("davalar", [])
+    if not isinstance(davalar, list):
+        davalar = []
+    davalar.append({"tarih": str(datetime.date.today()), "suc": suc})
+    bot_data["davalar"] = davalar[-20:]
+    save_data(bot_data)
+
+def refresh_bingo_day():
+    """Gün değişmişse bingo kartını sıfırlar."""
+    today = str(datetime.date.today())
+    if bot_data.get("bingo_date") != today:
+        bot_data["bingo_date"] = today
+        bot_data["bingo_marks"] = []
+
+def make_rage_graph(days: int = 7) -> str:
+    """Son N günün zirve rage değerlerini ASCII grafikle gösterir."""
+    gecmis = bot_data.get("rage_gecmis", [])[-days:]
+    if not gecmis:
+        return "Rage geçmişi için henüz yeterli veri yok."
+    lines = []
+    for item in gecmis:
+        val = int(item.get("max", 0))
+        bar = "█" * max(1, val // 10)
+        lines.append(f"`{str(item.get('tarih', '?'))[5:]}` {bar} %{val}")
+    return "\n".join(lines)
+
+def top_words(n: int = 5):
+    """Target'ın en çok kullandığı kelimeleri döndürür."""
+    sayac = bot_data.get("kelime_sayac", {})
+    if not isinstance(sayac, dict) or not sayac:
+        return []
+    return sorted(sayac.items(), key=lambda kv: kv[1], reverse=True)[:n]
+
+def build_weekly_embed() -> discord.Embed:
+    """Haftalık rapor embed'i (Pazartesi döngüsü ve /haftalik ortak)."""
+    target_mention = get_target_mention()
+    embed = discord.Embed(
+        title="Haftalık Mustafa Analizi",
+        description=random.choice(messages.HAFTALIK_SOZLER).format(target=target_mention),
+        color=discord.Color.dark_purple()
+    )
+    embed.add_field(name="Haftalık Mesaj", value=str(bot_data.get("haftalik_mesaj", 0)), inline=True)
+    embed.add_field(name="Haftalık Küfür", value=str(bot_data.get("haftalik_kufur", 0)), inline=True)
+    tw = top_words(5)
+    embed.add_field(name="En Çok Kullanılan Kelimeler", value="\n".join(f"**{w}**: {c}" for w, c in tw) or "Veri yok", inline=False)
+    embed.add_field(name="7 Günlük Rage Grafiği", value=make_rage_graph(), inline=False)
+    embed.set_footer(text="Artvin Haftalık İstihbarat Müdürlüğü")
+    return embed
 
 # ----------------- ETKİLEŞİMLİ UI BİLEŞENLERİ (VIEWS) -----------------
 
@@ -218,6 +298,34 @@ class MahkemeView(discord.ui.View):
             color=discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed)
+
+class AnketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=120)
+        self.votes = [0, 0, 0]
+
+    async def _vote(self, interaction: discord.Interaction, idx: int):
+        self.votes[idx] += 1
+        lines = "\n".join(f"**{messages.ANKET_SECENEKLER[i]}**: {self.votes[i]} oy" for i in range(3))
+        embed = discord.Embed(
+            title="Sunucu Anketi (Canlı Sonuçlar)",
+            description=lines,
+            color=discord.Color.blurple()
+        )
+        embed.set_footer(text="Sonuçlar bağlayıcıdır, itiraz yolu yok.")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Evet", style=discord.ButtonStyle.primary)
+    async def vote_ev(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._vote(interaction, 0)
+
+    @discord.ui.button(label="Tabii ki", style=discord.ButtonStyle.success)
+    async def vote_tb(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._vote(interaction, 1)
+
+    @discord.ui.button(label="Sorması ayıp, evet", style=discord.ButtonStyle.danger)
+    async def vote_sa(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._vote(interaction, 2)
 
 # ----------------- EVENTS -----------------
 
@@ -300,6 +408,7 @@ async def random_troll_loop():
         elif choice < 0.85:
             # 4. Artvin Ağır Ceza Mahkemesi İlamı (%15 şans)
             dava = random.choice(messages.MAHKEME_DAVALARI)
+            record_dava(dava["suc"])
             embed = discord.Embed(
                 title="Artvin 1. Ağır Ceza Mahkemesi Resmi İlamı",
                 description=f"**Sanık:** {target_mention}\n**Duruşma Durumu:** Gıyabi Otomatik Celp",
@@ -344,6 +453,39 @@ async def daily_report_loop():
     now = datetime.datetime.now()
     today_str = str(datetime.date.today())
 
+    # Bingo kartında gün kontrolü
+    refresh_bingo_day()
+
+    # Kayıp ihbarı: target uzun süredir sessizse (günde bir kez)
+    last_ts = bot_data.get("last_target_ts") or 0
+    if last_ts and bot_data.get("last_absence_date") != today_str:
+        hours_silent = int((now.timestamp() - last_ts) / 3600)
+        if hours_silent >= config.ABSENCE_HOURS:
+            channel = await get_target_channel()
+            if channel:
+                tpl = random.choice(messages.KAYIP_IHBARI)
+                try:
+                    await channel.send(tpl.format(target=get_target_mention(), saat=hours_silent))
+                    bot_data["last_absence_date"] = today_str
+                    save_data(bot_data)
+                except Exception:
+                    pass
+
+    # Haftalık rapor: Pazartesi 00:05
+    if now.weekday() == 0 and now.hour == 0 and now.minute >= 5:
+        week_key = f"{now.isocalendar()[0]}-W{now.isocalendar()[1]}"
+        if bot_data.get("last_weekly") != week_key:
+            channel = await get_target_channel()
+            if channel:
+                try:
+                    await channel.send(embed=build_weekly_embed())
+                    bot_data["last_weekly"] = week_key
+                    bot_data["haftalik_mesaj"] = 0
+                    bot_data["haftalik_kufur"] = 0
+                    save_data(bot_data)
+                except Exception:
+                    pass
+
     if now.hour == 23 and now.minute >= 55 and bot_data.get("last_report_date") != today_str:
         cid = get_channel_id()
         if not cid:
@@ -378,8 +520,14 @@ async def daily_report_loop():
                 logger.error(f"Günlük rapor gönderilemedi: {e}")
 
             # Günlük istatistikleri sıfırla
+            gecmis = bot_data.get("rage_gecmis", [])
+            if not isinstance(gecmis, list):
+                gecmis = []
+            gecmis.append({"tarih": today_str, "max": bot_data.get("max_rage", 0)})
+            bot_data["rage_gecmis"] = gecmis[-7:]
             bot_data["gunluk_mesaj"] = 0
             bot_data["gunluk_kufur"] = 0
+            bot_data["gunluk_caps"] = 0
             bot_data["max_rage"] = 0
             bot_data["last_report_date"] = today_str
             save_data(bot_data)
@@ -401,6 +549,8 @@ async def on_message(message: discord.Message):
     if is_mustafa:
         bot_data["toplam_mesaj"] = bot_data.get("toplam_mesaj", 0) + 1
         bot_data["gunluk_mesaj"] = bot_data.get("gunluk_mesaj", 0) + 1
+        bot_data["haftalik_mesaj"] = bot_data.get("haftalik_mesaj", 0) + 1
+        bot_data["last_target_ts"] = datetime.datetime.now().timestamp()
 
         # Küfür kontrolü - Tam kelime eşleme ile
         kufurler = ["amk", "aq", "mk", "sik", "sikeyim", "sikerim", "amına", "yarrak", "yarram", "puşt", "orospu", "piç", "göt"]
@@ -409,15 +559,59 @@ async def on_message(message: discord.Message):
         if has_kufur:
             bot_data["kufur_sayisi"] = bot_data.get("kufur_sayisi", 0) + 1
             bot_data["gunluk_kufur"] = bot_data.get("gunluk_kufur", 0) + 1
+            bot_data["haftalik_kufur"] = bot_data.get("haftalik_kufur", 0) + 1
             current_rage = min(100, current_rage + 15)
         else:
             current_rage = max(0, current_rage - 3)
 
-        # Caps lock rage etkisi
+        # Caps lock rage etkisi + günlük eşik etkinliği
         if len(message.content) > 5 and message.content.isupper():
             current_rage = min(100, current_rage + 20)
+            bot_data["gunluk_caps"] = bot_data.get("gunluk_caps", 0) + 1
+            if bot_data["gunluk_caps"] >= 3 and bot_data.get("caps_event_date") != str(datetime.date.today()):
+                bot_data["caps_event_date"] = str(datetime.date.today())
+                try:
+                    await message.channel.send(random.choice(messages.CAPS_EVENT).format(target=get_target_mention(), adet=bot_data["gunluk_caps"]))
+                except Exception:
+                    pass
 
         bot_data["max_rage"] = max(bot_data.get("max_rage", 0), current_rage)
+        save_data(bot_data)
+
+        # İnkâr zinciri: arka arkaya 'yok'
+        if content_lower == "yok":
+            bot_data["yok_zincir"] = bot_data.get("yok_zincir", 0) + 1
+            if bot_data["yok_zincir"] >= 3:
+                tpl = random.choice(messages.ZINCIR_MESAJLARI)
+                try:
+                    await message.channel.send(tpl.format(target=get_target_mention(), adet=bot_data["yok_zincir"]))
+                except Exception:
+                    pass
+                bot_data["yok_zincir"] = 0
+        else:
+            bot_data["yok_zincir"] = 0
+
+        # Günlük bingo kartı + kelime istatistiği
+        refresh_bingo_day()
+        marks = bot_data.get("bingo_marks", [])
+        if not isinstance(marks, list):
+            marks = []
+            bot_data["bingo_marks"] = marks
+        sayac = bot_data.get("kelime_sayac", {})
+        if not isinstance(sayac, dict):
+            sayac = {}
+            bot_data["kelime_sayac"] = sayac
+        for w in messages.BINGO_KELIMELER:
+            if check_word_match(w, content_lower):
+                sayac[w] = sayac.get(w, 0) + 1
+                if w not in marks:
+                    marks.append(w)
+        if len(marks) >= len(messages.BINGO_KELIMELER) and bot_data.get("bingo_done_date") != str(datetime.date.today()):
+            bot_data["bingo_done_date"] = str(datetime.date.today())
+            try:
+                await message.channel.send(random.choice(messages.BINGO_MESAJ).format(target=get_target_mention()))
+            except Exception:
+                pass
         save_data(bot_data)
 
         # Emoji Reaksiyonu Bombardımanı (%35 şansla Mustafa'ya emoji at)
@@ -533,6 +727,79 @@ async def on_message(message: discord.Message):
             pass
 
     await bot.process_commands(message)
+
+# Mesaj Düzenleme İfşası
+@bot.event
+async def on_message_edit(before: discord.Message, after: discord.Message):
+    if before.author.bot or before.author.id != get_target_user_id():
+        return
+    if not before.content or not after.content or before.content == after.content:
+        return
+    if random.random() > config.EVENT_TROLL_CHANCE:
+        return
+    tpl = random.choice(messages.EDIT_IFSA)
+    try:
+        await after.channel.send(tpl.format(target=get_target_mention(), eski=before.content[:300], yeni=after.content[:300]))
+    except Exception:
+        pass
+
+# Mesaj Silme (Kanıt Karartma)
+@bot.event
+async def on_message_delete(message: discord.Message):
+    if message.author is None or message.author.bot or message.author.id != get_target_user_id():
+        return
+    if not message.content:
+        return
+    if random.random() > config.EVENT_TROLL_CHANCE:
+        return
+    tpl = random.choice(messages.DELETE_KANIT)
+    try:
+        await message.channel.send(tpl.format(target=get_target_mention(), icerik=message.content[:300]))
+    except Exception:
+        pass
+
+# Presence (online/offline/dnd) Takibi
+@bot.event
+async def on_presence_update(before, after):
+    if after.id != get_target_user_id():
+        return
+    if before.status == after.status:
+        return
+    if random.random() > config.EVENT_TROLL_CHANCE:
+        return
+    saat = datetime.datetime.now().strftime("%H:%M")
+    if after.status == discord.Status.offline:
+        tpl = random.choice(messages.PRESENCE_OFFLINE)
+    elif after.status == discord.Status.dnd:
+        tpl = random.choice(messages.PRESENCE_DND)
+    elif after.status == discord.Status.online:
+        pool = messages.PRESENCE_GECE_ONLINE if datetime.datetime.now().hour < 6 else messages.PRESENCE_GUNDUZ_ONLINE
+        tpl = random.choice(pool)
+    else:
+        return
+    try:
+        channel = await get_target_channel()
+        if channel:
+            await channel.send(tpl.format(target=get_target_mention(), saat=saat))
+    except Exception:
+        pass
+
+# Nick Değişimi Anonsu
+@bot.event
+async def on_member_update(before, after):
+    if after.id != get_target_user_id():
+        return
+    if before.nick == after.nick:
+        return
+    if random.random() > config.EVENT_TROLL_CHANCE:
+        return
+    tpl = random.choice(messages.NICK_DEGISIM)
+    try:
+        channel = await get_target_channel()
+        if channel:
+            await channel.send(tpl.format(target=get_target_mention(), eski=before.nick or before.name, yeni=after.nick or after.name))
+    except Exception:
+        pass
 
 # ----------------- GLOBAL APP COMMAND ERROR HANDLER -----------------
 
@@ -740,6 +1007,7 @@ async def slash_mahkeme(interaction: discord.Interaction):
     record_provocation(interaction.user.id)
     target_mention = get_target_mention()
     dava = random.choice(messages.MAHKEME_DAVALARI)
+    record_dava(dava["suc"])
 
     embed = discord.Embed(
         title="Artvin 1. Ağır Ceza Mahkemesi Celbi",
@@ -783,6 +1051,123 @@ async def slash_sahte_haber(interaction: discord.Interaction, konu: Optional[str
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     await interaction.response.send_message(embed=embed)
 
+# ----------------- V2 SLASH KOMUTLARI -----------------
+
+@tree.command(name="anket", description="Sunucuya troll anket açar (canlı sonuçlu).")
+async def slash_anket(interaction: discord.Interaction):
+    record_provocation(interaction.user.id)
+    soru = random.choice(messages.ANKET_SORULARI)
+    embed = discord.Embed(
+        title="Sunucu Anketi",
+        description=f"**{soru}**\n\nButonlarla oy verin!",
+        color=discord.Color.blurple()
+    )
+    embed.set_footer(text="Sonuçlar bağlayıcıdır, itiraz yolu yok.")
+    await interaction.response.send_message(embed=embed, view=AnketView())
+
+@tree.command(name="karne", description="Mustafa'nın resmi karnesini gösterir.")
+async def slash_karne(interaction: discord.Interaction):
+    record_provocation(interaction.user.id)
+    target_mention = get_target_mention()
+    embed = discord.Embed(
+        title=f"{target_mention} Resmi Karne",
+        description="Artvin Milli Eğitim Troll Müdürlüğü onaylıdır.",
+        color=discord.Color.dark_gold()
+    )
+    for ders, yorum in messages.KARNE_DERSLER:
+        not_harf = random.choice(messages.KARNE_NOTLAR)
+        embed.add_field(name=f"{ders} [{not_harf}]", value=yorum, inline=False)
+    embed.set_footer(text="İtiraz yolu: 'yok'.")
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="dava_gecmisi", description="Artvin Ağır Ceza Mahkemesi dava arşivini gösterir.")
+async def slash_dava_gecmisi(interaction: discord.Interaction):
+    davalar = bot_data.get("davalar", [])
+    if not isinstance(davalar, list) or not davalar:
+        await interaction.response.send_message("Arşiv henüz temiz... şimdilik.", ephemeral=True)
+        return
+    lines = [f"**{d.get('tarih', '?')}** — {d.get('suc', '?')}" for d in davalar[-10:]]
+    embed = discord.Embed(
+        title="Artvin 1. Ağır Ceza Mahkemesi Dava Arşivi",
+        description="\n".join(lines),
+        color=discord.Color.dark_red()
+    )
+    embed.set_footer(text=f"Toplam dava: {len(davalar)} • Kararlar kesindir")
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="hava", description="Artvin hava durumu + Mustafa'nın vücut sıcaklığı.")
+async def slash_hava(interaction: discord.Interaction):
+    record_provocation(interaction.user.id)
+    durum, aciklama = random.choice(messages.HAVA_DURUMLARI)
+    target_mention = get_target_mention()
+    embed = discord.Embed(
+        title="Artvin Bölgesi Hava Durumu Raporu",
+        description=aciklama.format(target=target_mention),
+        color=discord.Color.teal()
+    )
+    embed.add_field(name="Durum", value=durum, inline=True)
+    embed.add_field(name="Hava Sıcaklığı", value=f"{random.randint(-5, 35)}°C", inline=True)
+    embed.add_field(name="Mustafa'nın Vücut Sıcaklığı", value=f"{random.randint(38, 450)}°C", inline=True)
+    embed.set_footer(text="Kaynak: Artvin Meteoroloji Bölge Troll Müdürlüğü")
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="olay", description="[Manuel] Rastgele bir olay trollü patlatır.")
+async def slash_olay(interaction: discord.Interaction):
+    record_provocation(interaction.user.id)
+    msg = random.choice(messages.OLAY_TROLL_MESAJLARI).format(target=get_target_mention())
+    embed = discord.Embed(title="SON DAKİKA | Artvin İstihbarat Bürosu", description=msg, color=discord.Color.red())
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="kayip", description="[Manuel] Mustafa için kayıp ihbarı yayınlar.")
+async def slash_kayip(interaction: discord.Interaction):
+    record_provocation(interaction.user.id)
+    last_ts = bot_data.get("last_target_ts") or 0
+    if last_ts:
+        hours = max(1, int((datetime.datetime.now().timestamp() - last_ts) / 3600))
+    else:
+        hours = random.randint(6, 72)
+    tpl = random.choice(messages.KAYIP_IHBARI)
+    embed = discord.Embed(title="KAYIP İHBARI", description=tpl.format(target=get_target_mention(), saat=hours), color=discord.Color.orange())
+    embed.set_footer(text="Görenlerin Artvin 1. Sulh Ceza'ya bildirmesi rica olunur.")
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="bingo", description="Bugünkü Mustafa bingo kartının durumunu gösterir.")
+async def slash_bingo(interaction: discord.Interaction):
+    refresh_bingo_day()
+    marks = bot_data.get("bingo_marks", [])
+    if not isinstance(marks, list):
+        marks = []
+    cells = [f"{'✅' if w in marks else '⬜'} {w}" for w in messages.BINGO_KELIMELER]
+    rows = ["   ".join(cells[i:i+3]) for i in range(0, len(cells), 3)]
+    embed = discord.Embed(
+        title="Mustafa Bingo Kartı (Günlük)",
+        description="\n".join(rows),
+        color=discord.Color.green()
+    )
+    embed.set_footer(text=f"{len(marks)}/{len(messages.BINGO_KELIMELER)} • Kart dolarsa BINGO!")
+    await interaction.response.send_message(embed=embed)
+
+@tree.command(name="haftalik", description="[Manuel] Haftalık Mustafa raporunu gösterir.")
+async def slash_haftalik(interaction: discord.Interaction):
+    await interaction.response.send_message(embed=build_weekly_embed())
+
+@tree.command(name="istatistik", description="Kelime top 5, rage grafiği ve genel istatistikler.")
+async def slash_istatistik(interaction: discord.Interaction):
+    target_mention = get_target_mention()
+    embed = discord.Embed(title="Mustafa Büyük İstatistik", description=f"Hedef: {target_mention}", color=discord.Color.blue())
+    tw = top_words(5)
+    embed.add_field(name="En Çok Kullanılan Kelimeler", value="\n".join(f"**{w}**: {c}" for w, c in tw) or "Veri yok", inline=False)
+    embed.add_field(name="7 Günlük Rage Grafiği", value=make_rage_graph(), inline=False)
+    embed.add_field(name="Toplam Mesaj", value=str(bot_data.get("toplam_mesaj", 0)), inline=True)
+    embed.add_field(name="Toplam Küfür", value=str(bot_data.get("kufur_sayisi", 0)), inline=True)
+    embed.add_field(name="İnkâr ('yok')", value=str(bot_data.get("inkar_sayisi", 0)), inline=True)
+    embed.add_field(name="Haftalık Mesaj", value=str(bot_data.get("haftalik_mesaj", 0)), inline=True)
+    embed.add_field(name="Haftalık Küfür", value=str(bot_data.get("haftalik_kufur", 0)), inline=True)
+    embed.add_field(name="Dava Sayısı", value=str(len(bot_data.get("davalar", []))), inline=True)
+    embed.set_footer(text="Artvin Büyük Veri ve İnkâr Analiz Merkezi")
+    await interaction.response.send_message(embed=embed)
+
 # ----------------- ÇALIŞTIRMA -----------------
 
 if __name__ == "__main__":
@@ -804,6 +1189,7 @@ if __name__ == "__main__":
                 "3. 'Privileged Gateway Intents' başlığı altındaki şu ayarları AÇIN:\n"
                 "   - Message Content Intent (Mesajları okumak için ZORUNLU)\n"
                 "   - Server Members Intent (Kullanıcıları görmek için ZORUNLU)\n"
+                "   - Presence Intent (Online/offline trollü için ZORUNLU)\n"
                 "4. En alttan 'Save Changes' butonuna tıklayıp kaydedin.\n"
                 "5. Ardından botu tekrar çalıştırın!\n"
                 "========================================================================"

@@ -91,12 +91,26 @@ Bot **otonom** çalışır — komut yazmaya gerek yoktur:
 - **Rastgele zamanlarda** (30-120 dk arası sürpriz): Kanala **Fun Fact**, **Son Dakika Haberi**, **Telemetri Raporu** veya **Mahkeme İlamı** bırakır.
 - **Mustafa yazdığında** organik tepkiler verir:
   - Soru sorduğunda (`?`) → "Yok."
-  - Caps Lock açtığında → Sismik çıldırma uyarısı
+  - Caps Lock açtığında → Sismik çıldırma uyarısı (günde 3. caps'te özel etkinlik)
   - Kısa cevap verdiğinde (`tm`, `he`, `hayırdır`) → Fun fact patlatır
-  - Tetik kelimeler (`yok`, `sg`, `kes`, `vlc`, `fener`, `ermeni` vb.) → Özel tepki
+  - Tetik kelimeler (`yok`, `sg`, `kes`, `vlc`, `fener`, `ermeni` vb.) → Şansa bağlı özel tepki
   - Rastgele emoji bombardımanı ve "Mustafaca Çevirmen™"
+  - Herhangi bir mesajına %25 şansla rastgele troll (fun fact / bilgelik / genel troll)
+- **Olay bazlı ifşalar** (şansa bağlı):
+  - Mesajını **düzenlerse** → orijinaliyle ifşa
+  - Mesajını **silerse** → "kanıt karartma" alarmı
+  - **Online/offline/DND** olunca → saatine göre roast (gece 3'te online olduysa ayrı)
+  - **Nick değiştirirse** → kimlik değişikliği anonsu
+- **Zincir & yokluk sistemleri**:
+  - Arka arkaya 3 `yok` → İnkâr Zinciri rekoru
+  - 6+ saat sessizlik → Kayıp İhbarı (günde bir)
+  - Günlük **Bingo kartı**: 9 tetik kelime, kart dolarsa BINGO anonsu
+- **Raporlar**: Her gece 23:55 günlük rapor, her Pazartesi 00:05 haftalık rapor (kelime top 5 + rage grafiği)
 
-### Slash Komutları (Debug/Test)
+> **NOT:** Online/offline trollü için Discord Developer Portal'dan **Presence Intent**'i açman gerekir
+> (Bot → Privileged Gateway Intents → Presence Intent). Message Content ve Server Members intentleri de açık olmalı.
+
+### Slash Komutları
 
 | Komut | Açıklama |
 | :--- | :--- |
@@ -113,6 +127,15 @@ Bot **otonom** çalışır — komut yazmaya gerek yoktur:
 | `/hedef` | Hedef kullanıcıyı değiştirir |
 | `/kanal` | Mesaj kanalını değiştirir |
 | `/liderlik` | Kışkırtma ligi sıralaması |
+| `/anket` | Troll anket (canlı sonuçlu butonlar) |
+| `/karne` | Mustafa'nın resmi karnesi |
+| `/dava_gecmisi` | Mahkeme dava arşivi |
+| `/hava` | Artvin hava durumu + vücut sıcaklığı |
+| `/olay` | [Manuel] Rastgele olay trollü |
+| `/kayip` | [Manuel] Kayıp ihbarı |
+| `/bingo` | Günlük bingo kartı durumu |
+| `/haftalik` | [Manuel] Haftalık rapor |
+| `/istatistik` | Kelime top 5 + rage grafiği + genel stats |
 
 ---
 
@@ -144,3 +167,8 @@ antimustafamir12/
 | `GUILD_ID` | Sunucu ID'si (slash komutları için) | — |
 | `RANDOM_INTERVAL_MIN` | Min. rastgele mesaj aralığı (dk) | 30 |
 | `RANDOM_INTERVAL_MAX` | Max. rastgele mesaj aralığı (dk) | 120 |
+| `TRIGGER_CHANCE_TARGET` | Target tetik kelime yazınca tepki şansı | 0.6 |
+| `TRIGGER_CHANCE_OTHERS` | Başkaları tetik kelime yazınca tepki şansı | 0.25 |
+| `TARGET_RANDOM_CHANCE` | Target'ın herhangi bir mesajına rastgele troll şansı | 0.25 |
+| `EVENT_TROLL_CHANCE` | Olay ifşaları (edit/silme/online/nick) şansı | 0.7 |
+| `ABSENCE_HOURS` | Kayıp ihbarı için sessizlik eşiği (saat) | 6 |
