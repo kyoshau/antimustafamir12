@@ -133,10 +133,18 @@ sudo systemctl enable ${TIMER_NAME}.timer
 sudo systemctl start ${TIMER_NAME}.timer
 echo "       Otomatik güncelleme aktif (her $UPDATE_INTERVAL GitHub'dan çeker)."
 
-# 7. update.sh scriptinin çalıştırılabilir olduğundan emin ol
-echo "[7/7] Update scripti kontrol ediliyor..."
+# Update scriptinin servisi şifresiz yeniden başlatabilmesi (sınırlı yetki)
+sudo tee /etc/sudoers.d/${SERVICE_NAME} > /dev/null << EOF
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart ${SERVICE_NAME}.service, /bin/systemctl restart ${SERVICE_NAME}.service
+EOF
+sudo chmod 440 /etc/sudoers.d/${SERVICE_NAME}
+echo "       Şifresiz restart yetkisi verildi (sadece bu servis için)."
+
+# 7. Manuel güncelleme komutu (her dizinden: bot-update)
+echo "[7/7] Manuel güncelleme komutu kuruluyor..."
 chmod +x "$BOT_DIR/update.sh"
-echo "       Tamam."
+sudo ln -sf "$BOT_DIR/update.sh" /usr/local/bin/bot-update
+echo "       Tamam. Manuel güncelleme için herhangi bir dizinde: bot-update"
 
 echo ""
 echo "=========================================="
@@ -158,7 +166,8 @@ echo "  3. Logları izleyin:"
 echo "     sudo journalctl -u $SERVICE_NAME -f"
 echo ""
 echo "  4. Manuel güncelleme:"
-echo "     bash $BOT_DIR/update.sh"
+echo "     bot-update"
+echo "     (veya: bash $BOT_DIR/update.sh)"
 echo ""
 echo "  Diğer Komutlar:"
 echo "     sudo systemctl stop $SERVICE_NAME         # Durdur"

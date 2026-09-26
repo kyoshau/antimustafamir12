@@ -39,7 +39,12 @@ sudo systemctl status antimustafamir12
 Bot **her 30 dakikada bir** GitHub'dan otomatik güncelleme çeker. Sen hiçbir şey yapmasan bile:
 - GitHub'a push at → Raspberry Pi otomatik olarak son kodu çeker → Bot yeniden başlar
 
-Manuel güncelleme istersen:
+Manuel güncelleme istersen (herhangi bir dizinden):
+```bash
+bot-update
+```
+
+Veya tam yol ile:
 ```bash
 bash ~/antimustafamir12/update.sh
 ```

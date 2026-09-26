@@ -2,12 +2,14 @@
 # ============================================================
 # antimustafamir12 Bot - Güncelleme Scripti
 # GitHub'dan son kodu çeker, bağımlılıkları günceller, botu yeniden başlatır.
-# Kullanım: bash update.sh
+# Kullanım: bot-update   (veya: bash update.sh)
 # Otomatik: systemd timer ile her 30 dakikada bir çalışır
 # ============================================================
 
 set -e
-BOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Sembolik link güvenli yol çözümü (/usr/local/bin/bot-update linkiyle de çalışır)
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+BOT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 SERVICE_NAME="antimustafamir12"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Güncelleme başlıyor..."
